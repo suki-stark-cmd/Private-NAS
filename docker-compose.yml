@@ -1,0 +1,33 @@
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:release
+    depends_on:
+      - redis
+      - database
+    environment:
+      DB_HOSTNAME: database
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE_NAME: immich
+    volumes:
+      - F:/NAS/immich/library:/usr/src/app/upload
+    ports:
+      - "2283:2283"
+    restart: always
+
+  redis:
+    container_name: immich_redis
+    image: redis:6
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: immich
+    volumes:
+      - F:/NAS/immich/postgres:/var/lib/postgresql/data
+    restart: always
