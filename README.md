@@ -1,355 +1,196 @@
-# 🏠 Windows NAS Setup with Immich + Tailscale
+# 🏠 Private NAS on Windows (Immich + Tailscale)
 
-This guide explains how to build a **personal photo NAS** on Windows using **Immich** and access it securely from anywhere using **Tailscale**.
+Build a professional, self-hosted photo NAS on Windows with Immich for photo management and Tailscale for secure remote access.
 
-Perfect for:
+![Windows](https://img.shields.io/badge/OS-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)
+![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker&logoColor=white)
+![Immich](https://img.shields.io/badge/App-Immich-4250AF)
+![Tailscale](https://img.shields.io/badge/Remote-Tailscale-242424?logo=tailscale&logoColor=white)
 
-* Personal photo backup
-* Private cloud storage
-* Google Photos alternative
-* Home server beginners
+## Contents
 
----
+- [Why this project](#why-this-project)
+- [Stack](#stack)
+- [Requirements](#requirements)
+- [Project layout](#project-layout)
+- [Quick start (10 steps)](#quick-start-10-steps)
+- [24/7 operation notes (important)](#247-operation-notes-important)
+- [Security best practices](#security-best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Future improvements](#future-improvements)
 
-## 🧰 Requirements
+## Why this project
 
-Before starting, make sure you have:
+- Private photo backup without public cloud lock-in
+- Google Photos alternative with your own storage
+- Remote access from anywhere using WireGuard-based networking (Tailscale)
+- Beginner-friendly homelab setup
 
-* Windows 10 or Windows 11
-* At least **8GB RAM**
-* Minimum **20GB free space**
-* External SSD recommended
-* Stable internet connection
+## Stack
 
-Software required:
+- Windows 10/11
+- Docker Desktop
+- Immich + Redis + PostgreSQL (pgvecto-rs)
+- Tailscale
 
-* Docker Desktop
-* Git
-* Tailscale
+## Requirements
 
----
+- 8 GB RAM minimum
+- 20 GB free disk minimum (more recommended)
+- Stable internet connection
+- External SSD strongly recommended
 
-## 📁 Step 1 — Create NAS Folder Structure
+## Project layout
 
-Open PowerShell and run:
+```text
+F:\NAS\immich\
+├── library
+└── postgres
+```
+
+## Quick start (10 steps)
+
+### 1) Create folders
 
 ```powershell
 mkdir F:\NAS
 cd F:\NAS
-
 mkdir immich
 cd immich
-
 mkdir library
 mkdir postgres
 ```
 
-Folder structure should look like:
-
-```text
-F:\NAS\immich\
- ├── library
- └── postgres
-```
-
----
-
-## 🐳 Step 2 — Install Docker Desktop
-
-Install Docker using terminal:
+### 2) Install Docker Desktop
 
 ```powershell
 winget install Docker.DockerDesktop
 ```
 
-After installation:
+Then enable:
 
-1. Open Docker Desktop
-2. Enable:
+- Use WSL 2
+- Start Docker on login
 
-```text
-Use WSL 2
-Start Docker on login
-```
+Wait until Docker shows **running**.
 
-Wait until:
+### 3) Create compose file
 
-```text
-Docker is running
-```
+Use `docker-compose.yml` from this repository, or create your own in `F:\NAS\immich`.
 
----
-
-## 📄 Step 3 — Create docker-compose.yml
-
-Inside:
-
-```text
-F:\NAS\immich
-```
-
-Create:
-
-```text
-docker-compose.yml
-```
-
-Use the compose file from this repository root (`docker-compose.yml`) or copy this content:
-
-```yaml
-services:
-  immich-server:
-    container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:release
-    depends_on:
-      - redis
-      - database
-    environment:
-      DB_HOSTNAME: database
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_DATABASE_NAME: immich
-    volumes:
-      - F:/NAS/immich/library:/usr/src/app/upload
-    ports:
-      - "2283:2283"
-    restart: always
-
-  redis:
-    container_name: immich_redis
-    image: redis:6
-    restart: always
-
-  database:
-    container_name: immich_postgres
-    image: tensorchord/pgvecto-rs:pg14-v0.2.0
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: immich
-    volumes:
-      - F:/NAS/immich/postgres:/var/lib/postgresql/data
-    restart: always
-```
-
----
-
-## ▶️ Step 4 — Start Immich NAS
-
-Run:
+### 4) Start Immich
 
 ```powershell
 cd F:\NAS\immich
 docker compose up -d
-```
-
-Wait about **1–2 minutes**.
-
-Check running containers:
-
-```powershell
 docker ps
 ```
 
-Expected output includes:
+Expected containers:
 
-```text
-immich_server
-immich_redis
-immich_postgres
-```
+- `immich_server`
+- `immich_redis`
+- `immich_postgres`
 
----
+### 5) Open Immich web UI
 
-## 🌐 Step 5 — Open Immich Web Interface
-
-Open browser:
+Go to:
 
 ```text
 http://localhost:2283
 ```
 
-Create your:
+Create your admin account.
 
-* Admin email
-* Password
+### 6) Connect mobile app
 
-Immich is now running.
-
----
-
-## 📱 Step 6 — Connect Mobile Device
-
-Install:
-
-* Immich mobile app (iOS or Android)
-
-Find your PC IP:
+Install Immich app (iOS/Android), find local IP:
 
 ```powershell
 ipconfig
 ```
 
-Example:
+Use server URL format:
 
 ```text
-192.168.1.5
+http://<YOUR_LOCAL_IP>:2283
 ```
 
-In Immich app:
-
-```text
-Server URL:
-http://192.168.1.5:2283
-```
-
-Login with your account.
-
----
-
-## 🌍 Step 7 — Install Tailscale (Remote Access)
-
-Install Tailscale:
+### 7) Install Tailscale
 
 ```powershell
 winget install Tailscale.Tailscale
-```
-
-Login:
-
-```powershell
 tailscale up
 ```
 
-Open browser and complete sign-in.
-
----
-
-## 🔗 Step 8 — Access NAS From Anywhere
-
-Get Tailscale IPv4:
+### 8) Access from anywhere
 
 ```powershell
 tailscale ip -4
 ```
 
-Example:
+Use:
 
 ```text
-100.82.14.55
+http://<YOUR_TAILSCALE_IP>:2283
 ```
 
-Use this address remotely:
+### 9) Ensure auto-start
 
-```text
-http://100.82.14.55:2283
-```
+- `restart: always` is already configured in compose
+- Keep Docker Desktop on startup
 
-Now your NAS works from anywhere (inside your Tailscale network).
+### 10) Back up regularly
 
----
+Back up `F:\NAS\immich` to:
 
-## 🔄 Step 9 — Auto Start NAS
+- External SSD
+- Optional cloud backup
 
-Containers restart automatically because compose uses:
+## 24/7 operation notes (important)
 
-```yaml
-restart: always
-```
+- Keep the NAS PC powered on for continuous uploads and remote access
+- Do not frequently shut down if you rely on automatic phone sync
+- Keep internet active for Tailscale remote connectivity
+- Keep Docker Desktop running at all times
+- Use a UPS to reduce corruption risk during power loss
+- Monitor disk growth in `library` and `postgres`
 
-Also ensure Docker Desktop is set to:
+## Security best practices
 
-```text
-Start on login
-```
+- Use strong, unique passwords
+- Keep Windows, Docker, and Immich updated
+- Never expose port `2283` directly to the public internet
+- Access remotely via Tailscale only
 
----
+## Troubleshooting
 
-## 📦 Step 10 — Backup Recommendation
-
-Backup folder:
-
-```text
-F:\NAS\immich
-```
-
-To:
-
-* External SSD
-* Cloud backup (optional)
-
-Never skip backups.
-
----
-
-## ⚠️ Important Notes (Read Before 24/7 Use)
-
-* Keep the NAS PC powered on for continuous sync and remote access.
-* Avoid shutting down frequently if you expect automatic mobile uploads.
-* A stable internet connection is required for remote access through Tailscale.
-* Docker Desktop must stay running; if Docker stops, Immich becomes unavailable.
-* Use a UPS (battery backup) if possible to reduce data corruption risk during power loss.
-* Check disk space regularly, especially in `library` and `postgres` folders.
-* Do not expose port `2283` directly to the public internet; use Tailscale instead.
-
----
-
-## 🛠️ Troubleshooting
-
-### Immich not opening
-
-Check containers:
+### Immich does not open
 
 ```powershell
 docker ps
-```
-
-Restart:
-
-```powershell
 docker compose restart
 ```
 
-### Tailscale not connecting
-
-Retry login/tunnel setup:
+### Tailscale cannot connect
 
 ```powershell
 tailscale up
 ```
 
----
+## Included file
 
-## 🔐 Security Tips
+This repository includes:
 
-* Use strong passwords
-* Keep Docker updated
-* Do not expose ports publicly
-* Use Tailscale for remote access
+- `docker-compose.yml` for Immich + Redis + PostgreSQL
 
----
+## Future improvements
 
-## 🎉 Done!
+- Add automated backup schedule
+- Add Cloudflare Tunnel (optional)
+- Add custom domain (optional)
+- Extend to full homelab stack (e.g., Nextcloud)
 
-You now have:
+## Author
 
-* Personal photo NAS
-* Private cloud storage
-* Remote access from anywhere
-
----
-
-## 📌 Future Improvements
-
-* Add Cloudflare Tunnel
-* Use custom domain
-* Add Nextcloud
-* Add automatic backups
-
----
-
-## 👨‍💻 Author
-
-Created by **TechWithSuki**
-
-Personal NAS + Homelab learning project.
+Created by **TechWithSuki**.
